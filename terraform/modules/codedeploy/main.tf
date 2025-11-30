@@ -1,10 +1,3 @@
-###############################################
-# Locals
-###############################################
-locals {
-  codedeploy_app_name = "${var.project}-${var.environment}-ecs-codedeploy-app"
-  deployment_group_name = "${var.project}-${var.environment}-ecs-codedeploy-dg"
-}
 
 ###############################################
 # IAM Role for CodeDeploy
@@ -49,7 +42,7 @@ resource "aws_codedeploy_app" "ecs" {
 ###############################################
 resource "aws_codedeploy_deployment_group" "ecs" {
   app_name              = aws_codedeploy_app.ecs.name
-  deployment_group_name = local.deployment_group_name
+  deployment_group_name = local.codedeploy_deployment_group
   service_role_arn      = aws_iam_role.codedeploy.arn
 
   # ECS Service を CodeDeploy 管理下に置く

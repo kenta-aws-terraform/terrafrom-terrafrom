@@ -28,7 +28,7 @@ variable "vpc_cidr" {
 # Subnets & AZ
 ###############################################
 variable "azs" {
-  description = "List of Availability Zones"
+  description = "List of Availability Zones (e.g. [\"ap-northeast-1a\",\"ap-northeast-1c\"])"
   type        = list(string)
 }
 
@@ -42,7 +42,14 @@ variable "private_subnet_cidrs" {
   type        = list(string)
 }
 
-
+###############################################
+# NAT Gateway
+###############################################
+variable "single_nat" {
+  description = "Use single NAT gateway for cost savings"
+  type        = bool
+  default     = true
+}
 
 ###############################################
 # Tags
@@ -52,11 +59,3 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
-
-variable "single_nat" {
-  description = "Use single NAT gateway for cost savings"
-  type        = bool
-  default     = true
-}
-
-

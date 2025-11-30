@@ -25,11 +25,10 @@ resource "aws_internet_gateway" "this" {
 }
 
 ########################################
-# Public Subnets (AZ指定＋map_public_ip_on_launch付き)
+# Public Subnets
 ########################################
 
 resource "aws_subnet" "public" {
-  # ★ idx を string にして "0", "1" という安定したキーにする
   for_each = {
     for idx, cidr in var.public_subnet_cidrs :
     tostring(idx) => {
@@ -49,11 +48,10 @@ resource "aws_subnet" "public" {
 }
 
 ########################################
-# Private Subnets (AZ指定)
+# Private Subnets
 ########################################
 
 resource "aws_subnet" "private" {
-  # ★ こちらも key を string 化して "0", "1" で安定させる
   for_each = {
     for idx, cidr in var.private_subnet_cidrs :
     tostring(idx) => {
@@ -72,13 +70,11 @@ resource "aws_subnet" "private" {
 }
 
 ########################################
-# EIP for NAT Gateway (single or multi)
+# EIP for NAT Gateway
 ########################################
 
 resource "aws_eip" "nat" {
-  # ★ single_nat=true → "0" だけ
-  #   single_nat=false → public subnet の key と 1:1
-  for_each = var.single_nat ? { "0" = {} } : aws_subnet.public
+  for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.public) : k => {} }
 
   domain = "vpc"
 
@@ -88,18 +84,14 @@ resource "aws_eip" "nat" {
 }
 
 ########################################
-# NAT Gateway (single or multi)
+# NAT Gateway
 ########################################
 
 resource "aws_nat_gateway" "this" {
-  # ★ EIP と同じ key セットで for_each
-  for_each = var.single_nat ? { "0" = {} } : aws_subnet.public
+  for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.public) : k => {} }
 
   allocation_id = aws_eip.nat[each.key].id
-
-  # ★ ここが重要：values()[0] をやめて key ベースにする
-  subnet_id = var.single_nat ? aws_subnet.public["0"].id : aws_subnet.public[each.key].id
-    # multi_nat      → 対応する public subnet
+  subnet_id     = var.single_nat ? aws_subnet.public["0"].id : aws_subnet.public[each.key].id
 
   tags = merge(var.tags, {
     Name = "${var.project}-${var.environment}-nat-${each.key}"
@@ -107,7 +99,7 @@ resource "aws_nat_gateway" "this" {
 }
 
 ########################################
-# Route Table (Public)
+# Public Route Table
 ########################################
 
 resource "aws_route_table" "public" {
@@ -139,9 +131,7 @@ resource "aws_route_table_association" "public" {
 ########################################
 
 resource "aws_route_table" "private" {
-  # ★ single_nat=true → RT は 1 つ（"0"）
-  #   single_nat=false → private subnet と 1:1
-  for_each = var.single_nat ? { "0" = {} } : aws_subnet.private
+  for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.private) : k => {} }
 
   vpc_id = aws_vpc.this.id
 
@@ -162,15 +152,12 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "private" {
   for_each = aws_subnet.private
 
-  # ★ single_nat=true → すべて private-rt-0 に紐付け
-  #   single_nat=false → サブネット key と同じ RT に紐付け
- route_table_id = var.single_nat ? aws_route_table.private["0"].id : aws_route_table.private[each.key].id
-
-  subnet_id = each.value.id
+  route_table_id = var.single_nat ? aws_route_table.private["0"].id : aws_route_table.private[each.key].id
+  subnet_id      = each.value.id
 }
 
 ########################################
-# VPC Endpoints (Fargate / ECS / Logs / SSM)
+# Interface VPC Endpoints
 ########################################
 
 locals {
@@ -187,15 +174,13 @@ locals {
 resource "aws_vpc_endpoint" "interface" {
   for_each = local.interface_endpoints
 
-  vpc_id            = aws_vpc.this.id
-  service_name      = each.value
-  vpc_endpoint_type = "Interface"
-  subnet_ids        = [for s in aws_subnet.private : s.id]
+  vpc_id              = aws_vpc.this.id
+  service_name        = each.value
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [for s in aws_subnet.private : s.id]
   private_dns_enabled = true
 
-  security_group_ids = [
-    aws_security_group.vpce.id
-  ]
+  security_group_ids = [aws_security_group.vpce.id]
 
   tags = merge(var.tags, {
     Name = "${var.project}-${var.environment}-vpce-${each.key}"
@@ -231,7 +216,7 @@ resource "aws_security_group" "vpce" {
 }
 
 ########################################
-# S3 Gateway Endpoint (ECR pull用)
+# S3 Gateway Endpoint
 ########################################
 
 resource "aws_vpc_endpoint" "s3" {
@@ -239,7 +224,6 @@ resource "aws_vpc_endpoint" "s3" {
   service_name      = "com.amazonaws.${var.region}.s3"
   vpc_endpoint_type = "Gateway"
 
-  # ★ ここも [0] ではなく、全 private RT に関連付けるのがベスト
   route_table_ids = [for rt in aws_route_table.private : rt.id]
 
   tags = merge(var.tags, {
