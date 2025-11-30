@@ -11,14 +11,8 @@ variable "environment" {
   type        = string
 }
 
-variable "tags" {
-  description = "Common tags"
-  type        = map(string)
-  default     = {}
-}
-
 ###############################################
-# ECS Service Info
+# ECS Service (CodeDeploy が操作する対象)
 ###############################################
 variable "cluster_name" {
   description = "ECS cluster name"
@@ -31,18 +25,21 @@ variable "service_name" {
 }
 
 ###############################################
-# ALB / Blue-Green
+# ALB Listeners (Blue/Green 用)
 ###############################################
 variable "production_listener_arn" {
-  description = "ARN of production listener"
+  description = "ALB production listener ARN"
   type        = string
 }
 
 variable "test_listener_arn" {
-  description = "ARN of test listener"
+  description = "ALB test listener ARN"
   type        = string
 }
 
+###############################################
+# Target Groups (Blue / Green)
+###############################################
 variable "blue_target_group_name" {
   description = "Blue target group name"
   type        = string
@@ -54,16 +51,10 @@ variable "green_target_group_name" {
 }
 
 ###############################################
-# Deployment Behavior
+# Tags
 ###############################################
-variable "termination_wait_time_in_minutes" {
-  description = "How long to keep blue tasks alive after successful deployment"
-  type        = number
-  default     = 5
-}
-
-variable "deployment_ready_wait_time_in_minutes" {
-  description = "How long to wait before continuing deployment automatically"
-  type        = number
-  default     = 0
+variable "tags" {
+  description = "Common tags"
+  type        = map(string)
+  default     = {}
 }
