@@ -1,0 +1,51 @@
+ユーザーからHTTPSでリクエストを受け付ける
+
+[User] 
+   ↓ (HTTPS)
+[ALB]
+   ↓ (ターゲットグループ)
+[ECS Service]
+   ↓
+[ECS Task（コンテナ）]
+   ↓ "Hello World!"
+[User]
+
+ネットワークサービス
+・Amazon VPC
+・Internet Gateway
+・NAT Gateway
+・Elastic IP
+・Subnet
+・Route Table
+・Route Table Association
+・Security Group
+・aws_vpc_endpoint (interface: ECR API / ECR Docker / Logs / SecretsManager / SSM)
+・aws_vpc_endpoint (gateway: S3)
+・aws_flow_log
+・aws_cloudwatch_log_group（FlowLogs用）
+
+コンテナサービス
+・Amazon ECS (Fargate)
+・Amazon ECR
+
+ロードバランサー
+・Application Load Balancer (ALB)
+・Target Group
+・Listener
+
+CI/CD やデプロイ／ビルド用サービス
+・AWS CodePipeline
+・AWS CodeBuild
+・(オプション) AWS CodeDeploy
+
+ゼロトラスト／セキュリティ or 内部通信最適化で使えるサービス
+・VPC Endpoint（Gateway または Interface、用途に応じて）
+・S3 Endpoint
+・ECR API Endpoint
+・ECR Docker Endpoint
+・CloudWatch Logs Endpoint / VPC Logs Endpoint（サービスに応じて）
+・(必要なら) AWS WAF／AWS Shield — セキュリティ強化用
+・IAM (Identity and Access Management) — 権限管理用
+・Secrets Manager
+・KMS
+・
