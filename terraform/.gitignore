@@ -1,9 +1,12 @@
 # Terraform
+.terraform/
 *.tfstate
 *.tfstate.*
 crash.log
-.terraform/
 .terraform.lock.hcl
 
-# VSCode
+# Editor / IDE
 .vscode/
+
+# Backup files
+*.backup
