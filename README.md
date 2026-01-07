@@ -31,7 +31,7 @@ Terraformでモジュール化し、環境ごとのパラメータを変数で�
 開発環境ではNAT Gatewayを1つに絞るなど、実務で意識した方がよさそうなコスト削減も考慮した設計になっています。
 
 # 3. システム構成図
-![System Architecture](images\architecture.svg)
+![System Architecture](images/architecture.png)
 
 # 4. 技術スタック
 ### Infrastructure as Code
