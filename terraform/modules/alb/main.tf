@@ -1,31 +1,28 @@
-#######################################
 # ALB Security Group
-#######################################
-
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-alb-sg"
   description = "Security Group for ALB"
   vpc_id      = var.vpc_id
 
-  # HTTP / HTTPS or listener_port
+  # 本番リスナー用のインバウンド
   ingress {
     from_port   = var.listener_port
     to_port     = var.listener_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound ALB port"
+    description = "Allow inbound traffic to ALB listener"
   }
 
-  # Test listener
+  # Blue/Greenデプロイ時の検証用リスナー
   ingress {
     from_port   = var.test_listener_port
     to_port     = var.test_listener_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow inbound test listener port for blue/green"
+    description = "Allow inbound traffic to test listener"
   }
 
-  # Outbound to anywhere
+  # ALBからのアウトバウンド通信を許可
   egress {
     from_port   = 0
     to_port     = 0
@@ -38,33 +35,27 @@ resource "aws_security_group" "alb" {
   })
 }
 
-#######################################
-# ALB 本体
-#######################################
-
+# Application Load Balancer
 resource "aws_lb" "this" {
   name               = "${local.name_prefix}-alb"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = var.public_subnet_ids
 
-  idle_timeout       = 60
+  idle_timeout = 60
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-alb"
   })
 }
 
-#######################################
-# Target Groups (Blue / Green)
-#######################################
-
+# Target Group(Blue)
 resource "aws_lb_target_group" "blue" {
   name        = local.blue_tg_name
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "ip"    # ←プロが絶対外さないポイント（Fargate 必須）
+  target_type = "ip" #ECS Fargate用
 
   health_check {
     path                = var.health_check_path
@@ -75,16 +66,17 @@ resource "aws_lb_target_group" "blue" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${local.blue_tg_name}"
+    Name = local.blue_tg_name
   })
 }
 
+# Target Group(Green)
 resource "aws_lb_target_group" "green" {
   name        = local.green_tg_name
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "ip"    # ←必須
+  target_type = "ip" #ECS Fargate用
 
   health_check {
     path                = var.health_check_path
@@ -95,27 +87,25 @@ resource "aws_lb_target_group" "green" {
   }
 
   tags = merge(local.common_tags, {
-    Name = "${local.green_tg_name}"
+    Name = local.green_tg_name
   })
 }
 
-#######################################
-# Listener (Production)
-#######################################
-
+# Listener(Production)
 resource "aws_lb_listener" "production" {
   load_balancer_arn = aws_lb.this.arn
   port              = var.listener_port
   protocol          = "HTTP"
 
+  # 初期状態ではBlue側へトラフィックを転送
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.blue.arn  # 初期は BLUE に向ける
+    target_group_arn = aws_lb_target_group.blue.arn
   }
 
-  # CodeDeploy が書き換える default_action を Terraform が戻さないようにする
+  # CodeDeployによる切り替えをTerraformが上書きしないよう制御
   lifecycle {
-    ignore_changes = [default_action]   # ←プロが必ず入れるハマりポイント回避
+    ignore_changes = [default_action]
   }
 
   tags = merge(local.common_tags, {
@@ -123,10 +113,7 @@ resource "aws_lb_listener" "production" {
   })
 }
 
-#######################################
-# Listener (Test Listener for Green test)
-#######################################
-
+# Listener(Test)
 resource "aws_lb_listener" "test" {
   load_balancer_arn = aws_lb.this.arn
   port              = var.test_listener_port
@@ -138,7 +125,7 @@ resource "aws_lb_listener" "test" {
   }
 
   lifecycle {
-    ignore_changes = [default_action]   # ←同じく必要
+    ignore_changes = [default_action]
   }
 
   tags = merge(local.common_tags, {

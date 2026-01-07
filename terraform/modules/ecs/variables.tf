@@ -1,6 +1,5 @@
-###############################################
-# Basic
-###############################################
+# 基本設定
+# プロジェクトおよび環境識別に使用する
 variable "project" {
   type = string
 }
@@ -9,17 +8,14 @@ variable "environment" {
   type = string
 }
 
-###############################################
 # Network
-###############################################
-# ❌ vpc_id は不要 → 削除済
+# ECS タスクを配置する Private Subnet
 variable "private_subnet_ids" {
   type = list(string)
 }
 
-###############################################
 # ALB / Blue-Green Routing
-###############################################
+# ALB との接続および初期ルーティングに使用する
 variable "alb_security_group_id" {
   type = string
 }
@@ -28,9 +24,8 @@ variable "blue_target_group_arn" {
   type = string
 }
 
-###############################################
-# Container Image (ECR / fallback)
-###############################################
+# Container Image
+# ECR イメージまたは fallback 用の Public Image を指定する
 variable "ecr_repository_name" {
   type = string
 }
@@ -44,9 +39,8 @@ variable "use_public_image" {
   default = false
 }
 
-###############################################
 # Container Settings
-###############################################
+# ECS Task / Service の基本設定
 variable "container_name" {
   type = string
 }
@@ -77,9 +71,7 @@ variable "environment_variables" {
   default = {}
 }
 
-###############################################
 # Tags
-###############################################
 variable "tags" {
   type    = map(string)
   default = {}

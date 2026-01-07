@@ -1,23 +1,19 @@
-###############################################
 # Data sources
-###############################################
+# アカウント ID とリージョン情報を取得
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-###############################################
 # Local values
-###############################################
 locals {
-  # ECR イメージ URI
+  # ECR に push されたアプリケーションイメージの URI
   ecr_image_uri = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.ecr_repository_name}:${var.image_tag}"
 
-  # 初回 apply 用の fallback
+  # 初回 apply 時は Public Image を使用する
   final_image = var.use_public_image ? "nginx:alpine" : local.ecr_image_uri
 }
 
-###############################################
 # IAM Role for ECS Task
-###############################################
+# ECS タスク実行時に使用する IAM Role
 resource "aws_iam_role" "task_execution" {
   name = "${var.project}-${var.environment}-ecs-task-execution-role"
 
@@ -25,28 +21,25 @@ resource "aws_iam_role" "task_execution" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
           Service = "ecs-tasks.amazonaws.com"
         }
+        Action = "sts:AssumeRole"
       }
     ]
   })
 }
 
-###############################################
 # ECS Cluster
-###############################################
 resource "aws_ecs_cluster" "this" {
   name = "${var.project}-${var.environment}-cluster"
 
   tags = var.tags
 }
 
-###############################################
-# Task Definition
-###############################################
+# ECS Task Definition
+# Fargate 用のタスク定義
 resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project}-${var.environment}-task"
   requires_compatibilities = ["FARGATE"]
@@ -76,9 +69,8 @@ resource "aws_ecs_task_definition" "app" {
   tags = var.tags
 }
 
-###############################################
 # ECS Service
-###############################################
+# ALB 配下で稼働する Fargate サービス
 resource "aws_ecs_service" "app" {
   name            = "${var.project}-${var.environment}-service"
   cluster         = aws_ecs_cluster.this.id
@@ -87,17 +79,19 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets         = var.private_subnet_ids
-    security_groups = [var.alb_security_group_id]
+    subnets          = var.private_subnet_ids
+    security_groups  = [var.alb_security_group_id]
     assign_public_ip = var.assign_public_ip
   }
 
+  # 初期状態では Blue Target Group に紐付ける
   load_balancer {
     target_group_arn = var.blue_target_group_arn
     container_name   = var.container_name
     container_port   = var.container_port
   }
 
+  # CodeDeploy による切り替えを Terraform が上書きしないよう制御
   lifecycle {
     ignore_changes = [
       task_definition,
@@ -107,4 +101,3 @@ resource "aws_ecs_service" "app" {
 
   tags = var.tags
 }
-

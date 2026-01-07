@@ -1,6 +1,5 @@
-###############################################
-# Basic
-###############################################
+# 基本設定
+# プロジェクトおよび環境識別に使用する
 variable "project" {
   description = "Project name"
   type        = string
@@ -11,9 +10,8 @@ variable "environment" {
   type        = string
 }
 
-###############################################
-# ECS Service (CodeDeploy が操作する対象)
-###############################################
+# ECS Service
+# CodeDeploy がデプロイ対象として操作する ECS サービス
 variable "cluster_name" {
   description = "ECS cluster name"
   type        = string
@@ -24,9 +22,8 @@ variable "service_name" {
   type        = string
 }
 
-###############################################
-# ALB Listeners (Blue/Green 用)
-###############################################
+# ALB Listeners
+# Blue / Green デプロイで使用する本番・検証用リスナー
 variable "production_listener_arn" {
   description = "ALB production listener ARN"
   type        = string
@@ -37,9 +34,8 @@ variable "test_listener_arn" {
   type        = string
 }
 
-###############################################
-# Target Groups (Blue / Green)
-###############################################
+# Target Groups
+# Blue / Green デプロイで切り替えるターゲットグループ
 variable "blue_target_group_name" {
   description = "Blue target group name"
   type        = string
@@ -50,9 +46,7 @@ variable "green_target_group_name" {
   type        = string
 }
 
-###############################################
 # Tags
-###############################################
 variable "tags" {
   description = "Common tags"
   type        = map(string)

@@ -1,8 +1,8 @@
 locals {
-  # リソース名の共通プレフィックス
+  # リソース名を環境単位で一貫させるためのプレフィックス
   name_prefix = "${var.project}-${var.environment}"
 
-  # 共通タグ
+  # 全リソースに共通で付与するタグ
   common_tags = merge(
     {
       Project     = var.project
@@ -12,7 +12,7 @@ locals {
     var.tags
   )
 
-  # public / private サブネット情報に AZ を紐付けたマップ
+  # サブネット CIDR と AZ を対応付けた定義（index で整列）
   public_subnets = {
     for idx, cidr in var.public_subnet_cidrs :
     idx => {
@@ -31,7 +31,7 @@ locals {
     }
   }
 
-  # Fargate + ECS Exec 用の Interface VPC エンドポイント（ec2messages は含めない）
+  # Fargate / ECS Exec で必要となる Interface VPC Endpoint（PrivateLink）
   interface_endpoint_services = [
     "ecr.api",
     "ecr.dkr",

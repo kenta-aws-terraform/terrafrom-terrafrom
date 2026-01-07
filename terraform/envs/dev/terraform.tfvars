@@ -1,39 +1,32 @@
-############################################################
-# 基本設定
-############################################################
+# 共通設定
+# リソース命名および環境識別に使用する
 project     = "myapp"
 environment = "dev"
 region      = "ap-northeast-1"
 
-############################################################
-# Network (VPC)
-############################################################
+# ネットワーク設定
 vpc_cidr = "10.0.0.0/16"
 
-# 明示的にAZを指定（実務はこれが正しい）
+# 利用するAZを明示的に指定する
 azs = [
   "ap-northeast-1a",
   "ap-northeast-1c",
 ]
 
-# Public Subnets（CIDR と AZ を1:1対応）
 public_subnet_cidrs = [
   "10.0.1.0/24",
   "10.0.2.0/24",
 ]
 
-# Private Subnets（CIDR と AZ を1:1対応）
 private_subnet_cidrs = [
   "10.0.11.0/24",
   "10.0.12.0/24",
 ]
 
-# NAT Gateway：devは1つでコスト削減
+# dev環境のためNAT Gatewayは単一構成とする
 single_nat = true
 
-############################################################
-# Tags (全モジュールに付与される)
-############################################################
+# 共通タグ
 tags = {
   Owner     = "portfolio"
   Env       = "dev"
@@ -41,31 +34,22 @@ tags = {
   Project   = "myapp"
 }
 
-############################################################
-# ECS Task (Application コンテナ)
-############################################################
-
-# 今回はリポジトリ名 / タグだけ
+# ECSタスク設定
 ecr_repository_name = "myapp"
 image_tag           = "latest"
 
-# 初回 apply 用の fallback（nginx:alpine を使う）
+# 初期構築時のフォールバック
 use_public_image = true
 
-# コンテナ基本設定
 container_name = "app"
 container_port = 80
 
-# Fargate Task サイズ
 cpu    = "256"
 memory = "512"
 
-# ECS Service Desired Count
 desired_count = 1
 
-############################################################
-# ECS Task の環境変数
-############################################################
+# アプリケーション設定
 environment_variables = {
   ENV       = "dev"
   LOG_LEVEL = "info"

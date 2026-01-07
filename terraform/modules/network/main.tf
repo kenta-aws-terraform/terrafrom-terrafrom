@@ -1,7 +1,4 @@
-########################################
 # VPC
-########################################
-
 resource "aws_vpc" "this" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
@@ -12,10 +9,7 @@ resource "aws_vpc" "this" {
   })
 }
 
-########################################
-# Internet Gateway
-########################################
-
+# Internet Gateway（Public からの外部接続用）
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
 
@@ -24,10 +18,7 @@ resource "aws_internet_gateway" "this" {
   })
 }
 
-########################################
-# Public Subnets
-########################################
-
+# Public Subnets（ALB 配置用）
 resource "aws_subnet" "public" {
   for_each = {
     for idx, cidr in var.public_subnet_cidrs :
@@ -47,10 +38,7 @@ resource "aws_subnet" "public" {
   })
 }
 
-########################################
-# Private Subnets
-########################################
-
+# Private Subnets（ECS/Fargate 配置用）
 resource "aws_subnet" "private" {
   for_each = {
     for idx, cidr in var.private_subnet_cidrs :
@@ -69,11 +57,9 @@ resource "aws_subnet" "private" {
   })
 }
 
-########################################
-# EIP for NAT Gateway
-########################################
-
+# NAT Gateway 用の EIP
 resource "aws_eip" "nat" {
+  # single_nat=true の場合は 1 つに集約する
   for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.public) : k => {} }
 
   domain = "vpc"
@@ -83,11 +69,9 @@ resource "aws_eip" "nat" {
   })
 }
 
-########################################
-# NAT Gateway
-########################################
-
+# NAT Gateway（Private からのアウトバウンド用）
 resource "aws_nat_gateway" "this" {
+  # single_nat=true の場合は 1 つに集約する
   for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.public) : k => {} }
 
   allocation_id = aws_eip.nat[each.key].id
@@ -98,10 +82,7 @@ resource "aws_nat_gateway" "this" {
   })
 }
 
-########################################
-# Public Route Table
-########################################
-
+# Public Route Table（0.0.0.0/0 → IGW）
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.this.id
 
@@ -115,10 +96,7 @@ resource "aws_route_table" "public" {
   })
 }
 
-########################################
 # Public Route Table Association
-########################################
-
 resource "aws_route_table_association" "public" {
   for_each = aws_subnet.public
 
@@ -126,11 +104,9 @@ resource "aws_route_table_association" "public" {
   subnet_id      = each.value.id
 }
 
-########################################
-# Private Route Table
-########################################
-
+# Private Route Table（0.0.0.0/0 → NAT）
 resource "aws_route_table" "private" {
+  # single_nat=true の場合は Private RT も 1 つに集約する
   for_each = var.single_nat ? { "0" = {} } : { for k in keys(aws_subnet.private) : k => {} }
 
   vpc_id = aws_vpc.this.id
@@ -145,10 +121,7 @@ resource "aws_route_table" "private" {
   })
 }
 
-########################################
 # Private Route Table Association
-########################################
-
 resource "aws_route_table_association" "private" {
   for_each = aws_subnet.private
 
@@ -156,10 +129,7 @@ resource "aws_route_table_association" "private" {
   subnet_id      = each.value.id
 }
 
-########################################
-# Interface VPC Endpoints
-########################################
-
+# Interface VPC Endpoints（PrivateLink）
 locals {
   interface_endpoints = {
     ecs           = "com.amazonaws.${var.region}.ecs"
@@ -187,10 +157,7 @@ resource "aws_vpc_endpoint" "interface" {
   })
 }
 
-########################################
-# Security Group for VPC Endpoints
-########################################
-
+# Security Group for Interface VPC Endpoints
 resource "aws_security_group" "vpce" {
   name        = "${var.project}-${var.environment}-vpce-sg"
   description = "Security group for interface VPC Endpoints"
@@ -215,10 +182,7 @@ resource "aws_security_group" "vpce" {
   })
 }
 
-########################################
 # S3 Gateway Endpoint
-########################################
-
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.region}.s3"

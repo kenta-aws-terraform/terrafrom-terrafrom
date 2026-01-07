@@ -1,6 +1,5 @@
-############################################################
-# 基本設定
-############################################################
+# 共通識別子
+# リソース命名や環境識別に使用する
 variable "project" {
   type        = string
   description = "Project name"
@@ -16,9 +15,7 @@ variable "region" {
   description = "AWS region"
 }
 
-############################################################
 # Network
-############################################################
 variable "vpc_cidr" {
   type = string
 }
@@ -29,31 +26,28 @@ variable "azs" {
 }
 
 variable "public_subnet_cidrs" {
-  type = list(string)
+  type        = list(string)
+  description = "Must align with azs"
 }
 
 variable "private_subnet_cidrs" {
-  type = list(string)
+  type        = list(string)
+  description = "Must align with azs"
 }
 
 variable "single_nat" {
   type        = bool
-  description = "Use single NAT gateway for cost savings"
+  description = "Whether to create a single NAT gateway"
   default     = true
 }
 
-############################################################
 # Tags
-############################################################
 variable "tags" {
   type    = map(string)
   default = {}
 }
 
-############################################################
-# ECS / Container
-############################################################
-
+# ECS/Container
 variable "ecr_repository_name" {
   type        = string
   description = "ECR repository name"
@@ -67,7 +61,7 @@ variable "image_tag" {
 variable "use_public_image" {
   type        = bool
   default     = false
-  description = "Use nginx:alpine for initial apply"
+  description = "Use a public image for initial apply"
 }
 
 variable "container_name" {
